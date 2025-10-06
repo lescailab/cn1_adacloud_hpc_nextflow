@@ -1,0 +1,93 @@
+---
+# tasks/tools.yml
+# Installs Docker CE, Micromamba, and Nextflow (native) under the "install" tag
+
+- name: Install Docker CE dependencies
+  yum:
+    name:
+      - yum-utils
+      - device-mapper-persistent-data
+      - lvm2
+    state: present
+  tags: install
+
+- name: Add Docker CE repository for Rocky Linux / RHEL
+  ansible.builtin.yum_repository:
+    name: docker-ce-stable
+    description: Docker CE Stable - $releasever/$basearch
+    baseurl: https://download.docker.com/linux/rhel/$releasever/$basearch/stable
+    gpgkey: https://download.docker.com/linux/rhel/gpg
+    gpgcheck: yes
+  tags: install
+
+- name: Install Docker CE packages
+  yum:
+    name:
+      - docker-ce
+      - docker-ce-cli
+      - containerd.io
+    state: present
+  tags: install
+
+- name: Ensure Docker service is enabled and running
+  service:
+    name: docker
+    state: started
+    enabled: true
+  tags: install
+
+- name: Ensure docker group exists
+  group:
+    name: docker
+    state: present
+  become: yes
+  tags: install
+
+- name: Add cluster user to docker group
+  user:
+    name: "{{ ansible_user | default(ansible_ssh_user) }}"
+    groups: docker
+    append: yes
+  become: yes
+  tags: install
+
+- name: Install tar & bzip2 (needed for micromamba extraction)
+  yum:
+    name:
+      - tar
+      - bzip2
+    state: present
+  become: yes
+  tags: install
+
+- name: Install Micromamba (atomic tar-stream)
+  ansible.builtin.shell: |
+    set -e
+    curl -Ls https://micro.mamba.pm/api/micromamba/linux-64/latest | tar -xvj /usr/local/bin/micromamba
+    chmod 0755 /usr/local/bin/micromamba
+  args:
+    creates: /usr/local/bin/micromamba
+  become: yes
+  tags: install
+
+# ───────────────────────────────────────────────────────────────────────
+# NATIVE Nextflow INSTALL (instead of via Micromamba)
+- name: Ensure Java 17 (OpenJDK) is installed
+  yum:
+    name: java-17-openjdk-devel
+    state: present
+  tags: install
+
+- name: Install Nextflow via official installer
+  ansible.builtin.shell: |
+    set -e
+    # download & run the installer to produce the `nextflow` binary
+    curl -s https://get.nextflow.io | bash
+    # move it into a directory on PATH
+    mv nextflow /usr/local/bin/nextflow
+    chmod 0755 /usr/local/bin/nextflow
+  args:
+    chdir: /tmp
+    creates: /usr/local/bin/nextflow
+  tags: install
+

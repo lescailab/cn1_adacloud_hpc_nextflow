@@ -1,0 +1,5 @@
+---
+roles:
+  - src: https://github.com/stackhpc/ansible-role-openhpc.git
+    version: v0.27.0
+    name: stackhpc.openhpc

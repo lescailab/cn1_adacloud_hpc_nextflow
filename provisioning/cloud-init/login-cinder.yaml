@@ -1,0 +1,55 @@
+#cloud-init config
+
+disable_root: true
+
+users:
+  - name: ${username}
+    groups: sudo
+    sudo: ["ALL=(ALL) NOPASSWD:ALL"]
+    shell: /bin/bash
+    ssh_authorized_keys:
+      %{ for key in ssh_pub_keys ~}
+      - ${key}
+      %{ endfor ~}
+
+timezone: Europe/Rome
+
+hostname: ${hostname}
+
+bootcmd:
+  - [cloud-init-per, once, gpt, parted, -s, /dev/vdb, mklabel, gpt]
+  - [cloud-init-per, once, partition, parted, -s, /dev/vdb, mkpart, primary, xfs, 0%, "${cinder_volume_size_gb}GB"]
+  - [cloud-init-per, once, format, mkfs, -t, xfs, /dev/vdb1]
+
+mounts:
+  - [/dev/vdb1, /home]
+
+
+write_files:
+- path: /etc/hosts
+  append: true
+  content: |
+    %{ for host in hosts_list ~}
+    ${host.ip} ${host.name}
+    %{ endfor ~}
+
+
+packages:
+  %{ for pkg in packages ~}
+  - ${pkg}
+  %{ endfor ~}
+
+
+# If upgrade is true, update and upgrade packages, and reboot if required
+package_update: true
+package_upgrade: ${upgrade}
+# Required to update the kernel
+package_reboot_if_required: ${upgrade}
+
+
+runcmd:
+  - echo '/home *(rw,sync,no_root_squash)' > /etc/exports
+  - dnf install -y nfs-utils
+  - systemctl enable --now nfs-server
+  - exportfs -a
+  - systemctl restart nfs-server
