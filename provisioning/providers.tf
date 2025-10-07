@@ -24,7 +24,7 @@ terraform {
 provider "openstack" {
  auth_url                      = "https://adacloud.hpc.cineca.it:5000"
  region                        = "RegionOne"
- application_credential_id     = "69bec527844c48b887d7f9bc163f88da"
- application_credential_secret = "ozx3baorn23n0tSR-0-KfJvvwYuSuSfvNvJ017CSWXMDIWV-ilFW5D_OE9BUTr_eg1Vv01NhhFQS0p1hqwHjqw"
+ application_credential_id     = "xxxx"
+ application_credential_secret = "oxxxw"
  #cacert_file                   = data.http.ada_cloud_ca_certificate.response_body
 }
